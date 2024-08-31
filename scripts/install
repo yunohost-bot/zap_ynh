@@ -1,11 +1,5 @@
 #!/bin/bash
 
-#=================================================
-# GENERIC START
-#=================================================
-# IMPORT GENERIC HELPERS
-#=================================================
-
 source _common.sh
 source /usr/share/yunohost/helpers
 
@@ -22,17 +16,17 @@ timezone=$(cat /etc/timezone)
 #=================================================
 ynh_print_info "Storing installation settings..."
 
-ynh_app_setting_set --app=$app --key=random_string --value=$random_string
+ynh_app_setting_set --key=random_string --value=$random_string
 
 #=================================================
 # DOWNLOAD, CHECK AND UNPACK SOURCE
 #=================================================
-ynh_script_progression --message="Setting up Zap source files..."
+ynh_script_progression "Setting up Zap source files..."
 
 ynh_setup_source --dest_dir="$install_dir"
 
 # Make addon Directory and unpack the addons to this directory
-ynh_script_progression --message="Setting up Zap addons source files..."
+ynh_script_progression "Setting up Zap addons source files..."
 
 pushd "$install_dir"
 	mkdir -p extend/addon/zaddons
@@ -64,7 +58,7 @@ pushd "$install_dir"
 popd
 
 # 3 - Some extra folders
-ynh_script_progression --message="Creating smarty3 folder for personal data..."
+ynh_script_progression "Creating smarty3 folder for personal data..."
 
 mkdir -p "${install_dir}/store"
 mkdir -p  "${install_dir}/cache/smarty3"
@@ -73,42 +67,41 @@ chmod -R 775 $install_dir/store $install_dir/cache
 # Create php.log inside for logs
 touch "$install_dir/php.log"
 
-chmod 750 "$install_dir"
-chmod -R o-rwx "$install_dir"
-chown -R $app:www-data "$install_dir"
-
+#REMOVEME? Assuming the install dir is setup using ynh_setup_source, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod 750 "$install_dir"
+#REMOVEME? Assuming the install dir is setup using ynh_setup_source, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod -R o-rwx "$install_dir"
+#REMOVEME? Assuming the install dir is setup using ynh_setup_source, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chown -R $app:www-data "$install_dir"
 #=================================================
 # ADD A CONFIGURATION
 #=================================================
-ynh_script_progression --message="Adding a configuration file..." --weight=1
+ynh_script_progression "Adding $app's configuration..."
 
-ynh_add_config --template="htconfig.php" --destination="$install_dir/.htconfig.php"
+ynh_config_add --template="htconfig.php" --destination="$install_dir/.htconfig.php"
 
-chmod 400 "$install_dir/.htconfig.php"
-chown $app:$app "$install_dir/.htconfig.php"
+#REMOVEME? Assuming the file is setup using ynh_config_add, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod 400 "$install_dir/.htconfig.php"
+#REMOVEME? Assuming the file is setup using ynh_config_add, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chown $app:$app "$install_dir/.htconfig.php"
 
 #=================================================
 # NGINX CONFIGURATION
 #=================================================
-ynh_script_progression --message="Configuring NGINX web server..."
+ynh_script_progression "Configuring NGINX web server..."
 
 # Create a dedicated nginx config
-ynh_add_nginx_config
+ynh_config_add_nginx
 
 # Create a dedicated php-fpm config
-ynh_add_fpm_config
+ynh_config_add_phpfpm
 
-ynh_add_config --template="poller-cron" --destination="/etc/cron.d/$app"
-chown root: "/etc/cron.d/$app"
-chmod 644 "/etc/cron.d/$app"
+ynh_config_add --template="poller-cron" --destination="/etc/cron.d/$app"
+#REMOVEME? Assuming the file is setup using ynh_config_add, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chown root: "/etc/cron.d/$app"
+#REMOVEME? Assuming the file is setup using ynh_config_add, the proper chmod/chowns are now already applied and it shouldn't be necessary to tweak perms | chmod 644 "/etc/cron.d/$app"
 
 # Use logrotate to manage application logfile(s)
-ynh_use_logrotate "$install_dir/php.log"
+ynh_config_add_logrotate "$install_dir/php.log"
 
-ynh_add_fail2ban_config --logpath="$install_dir/php.log" --failregex="^.*auth\.php.*failed login attempt.*from IP <HOST>.*$" --max_retry="5"
+ynh_config_add_fail2ban --logpath="$install_dir/php.log" --failregex="^.*auth\.php.*failed login attempt.*from IP <HOST>.*$"
 
 #=================================================
 # END OF SCRIPT
 #=================================================
 
-ynh_script_progression --message="Installation of $app completed"
+ynh_script_progression "Installation of $app completed"
